@@ -239,7 +239,40 @@ object Util {
     frdsMap
   }
 
+  def prune(keepSet: HashSet[Int])(dataSetName: String) = {
 
+    import com.mongodb.casbah.Imports._
+    val mongoClient = MongoClient(conf.getString("MongoDBHost"), conf.getInt("MongoDBPort"))
+    val db = mongoClient(dataSetName+ "Split")
+    val coll = db("train");
+    /*
+     * keepSet collects nodes id which is remained in the fiveSet, and we should keep them
+     * in the final frdsMap. Then, we filter out all key nodes which is not in fiveSet.
+     */
+    var frdsMap = new scala.collection.mutable.HashMap[Int, ArrayBuffer[Int]]();
+    for(elem <- keepSet){
+      val query1 = MongoDBObject("_id" -> elem);
+      val cursor1 = coll.find(query1);
+      if(cursor1.hasNext){
+        val kv1 = cursor1.next();
+        val k1 = kv1.toList(1)._1;
+        val v1 = kv1.as[MongoDBList](k1).toList; 
+        val src1FrdListInTrain = v1.collect(aFunction).to[ArrayBuffer];
+        frdsMap += elem -> src1FrdListInTrain;
+      }
+    }
+    frdsMap
+  }
+
+  val aFunction = new PartialFunction[Any, Int] {
+    def apply(d: Any) = d match{
+      case a: Int => a
+    }
+    def isDefinedAt(d: Any) = d match{
+      case a: Int => true
+      case _ => false
+    }
+  }
   def findNumMutualFrds(src1: Int, src2: Int, frdsMapGlobal: scala.collection.mutable.Map[Int, ArrayBuffer[Int]]) = {
     var ret = 1;
     if(frdsMapGlobal.contains(src1) == false || frdsMapGlobal(src1) == null) ret = -1;
@@ -248,6 +281,18 @@ object Util {
     else{
       val frds1 = frdsMapGlobal(src1);
       val frds2 = frdsMapGlobal(src2);
+      frds1.toSet.intersect(frds2.toSet).size
+    }
+  }
+
+  def findNumMutualFrdsFromFiveSet(src1: Int, src2: Int, fiveSet: scala.collection.mutable.Map[Int, ArrayBuffer[Int]]) = {
+    var ret = 1;
+    if(fiveSet.contains(src1) == false || fiveSet(src1) == null) ret = -1;
+    if(fiveSet.contains(src2) == false || fiveSet(src2) == null) ret = -1;
+    if(ret == -1) -1
+    else{
+      val frds1 = fiveSet(src1);
+      val frds2 = fiveSet(src2);
       frds1.toSet.intersect(frds2.toSet).size
     }
   }

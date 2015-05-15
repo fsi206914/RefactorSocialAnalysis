@@ -40,17 +40,60 @@ object RWM {
     localGraph
   }
 
+  val aFunction = new PartialFunction[Any, Int] {
+    def apply(d: Any) = d match{
+      case a: Int => a
+    }
+    def isDefinedAt(d: Any) = d match{
+      case a: Int => true
+      case _ => false
+    }
+  }
+
   def applyDB(backBone: scala.collection.Set[Int])(src: Int, dataSetName: String) = {
 
     import com.mongodb.casbah.Imports._
     val mongoClient = MongoClient(conf.getString("MongoDBHost"), conf.getInt("MongoDBPort"))
-    val db = mongoClient(dataSetName)
-    val coll = db("liang");
+    val db = mongoClient(dataSetName+"Split")
+    val coll = db("train");
 
     val localGraph = new HashSet[Int]()
     var source = src
     localGraph += source
     var count = 0;
+    // print(source+" is here.");
+
+    while (count < 10000 && !backBone.contains(source)) {
+      //      print(source+" ")
+
+      val query1 = MongoDBObject("_id" -> source);
+      val cursor1 = coll.find(query1);
+      if(cursor1.hasNext){
+        // println("cursor1 has next")
+        val kv1 = cursor1.next();
+        val k1 = kv1.toList(1)._1;
+        val v1 = kv1.as[MongoDBList](k1).toList; 
+        val src1FrdListInTrain = v1.collect(aFunction).to[ArrayBuffer];
+        val random_index = rand.nextInt(src1FrdListInTrain.size)
+        val random_node = src1FrdListInTrain(random_index)
+
+        val query2 = MongoDBObject("_id" -> random_node);
+        val cursor2 = coll.find(query2);
+
+        if(cursor2.hasNext){
+          val kv2 = cursor2.next();
+          val k2 = kv2.toList(1)._1;
+          val v2 = kv2.as[MongoDBList](k2).toList; 
+          val src2FrdListInTrain = v2.collect(aFunction).to[ArrayBuffer];
+          
+          if (rand.nextDouble() <= math.min(1.0, src2FrdListInTrain.size.toDouble / src1FrdListInTrain.size.toDouble))
+            source = random_node
+        }
+      }
+      localGraph += source
+      count = count + 1
+    }
+
 
     localGraph
   }

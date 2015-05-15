@@ -69,6 +69,19 @@ object MCSAT {
    */
   def apply(frdsMap: Map[Int, ArrayBuffer[Int]], commMap: Map[Int, ArrayBuffer[Int]])(src1: Int, src2: Int, satNum: Int) = {
 
+    // import java.io._;
+
+    // Get the Java runtime
+    val runtime = Runtime.getRuntime();
+    // Run the garbage collector
+    runtime.gc();
+    // Calculate the used memory
+    val memory = runtime.totalMemory() - runtime.freeMemory();
+    println("Used memory is bytes: " + memory);
+    // println("Used memory is megabytes: "
+    //     + bytesToMegabytes(memory));
+
+
     frdsMapGlobal = frdsMap
     commsMapGlobal = commMap
     frdsRelation = new scala.collection.mutable.HashMap[(Int, Int), (Boolean, Boolean)]();
