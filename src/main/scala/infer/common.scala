@@ -46,7 +46,13 @@ package object infer {
   else 0.000004
 
 
-  def ProbLJCommonComm(numMutualComm: Int) = 0.0061 * math.pow(numMutualComm, 1.1498)
+  def ProbLJCommonComm(numMutualComm: Int) = if (numMutualComm >0 ){
+
+    val ret = 0.0061 * math.pow(numMutualComm, 1.1498) + 0.5
+    if(ret >= 1.0) 1.0 else ret;
+  }
+  else 0.000004;
+
 
   import com.typesafe.config.ConfigFactory
   val conf = ConfigFactory.load
